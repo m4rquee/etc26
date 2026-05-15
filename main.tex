@@ -67,7 +67,7 @@
 \maketitle
 
 \begin{abstract}
-    The Minimum Scan Cover (MSC) problem schedules pairwise communication among a satellite swarm using directional antennas. Satellites are points in a Euclidean space, and alignment costs are proportional to the rotation angles.
+    The Minimum Scan Cover (MSC) problem schedules pairwise communication among a satellite swarm using directional antennas. Satellites are points in the Euclidean space, and alignment costs are proportional to the rotation angles.
     %
     The goal is to minimize the total time to complete the connections described as edges of an input graph.
     %
@@ -79,7 +79,7 @@
 \end{abstract}
 
 \begin{resumo}
-    O problema da Cobertura Mínima por Varredura (MSC) escalona as comunicações par-a-par em enxames de satélites usando antenas direcionais. Satélites são pontos em um espaço Euclidiano, e os custos de alinhamento são proporcionais aos ângulos de rotação.
+    O problema da Cobertura Mínima por Varredura (MSC) escalona as comunicações par-a-par em enxames de satélites usando antenas direcionais. Satélites são pontos no espaço Euclidiano e os custos de alinhamento são proporcionais aos ângulos de rotação.
     %
     O objetivo é minimizar o tempo total necessário para completar as conexões descritas como arestas de um grafo de entrada.
     %
@@ -98,11 +98,11 @@ No contexto de enxames de satélites, estabelecer uma rede de comunicação conf
 %
 No entanto, devido à alta atenuação do sinal em transmissões omnidirecionais no espaço sideral, os satélites dependem de antenas direcionais que exigem alinhamento preciso entre o transmissor e o receptor~\cite{WikiLaser}.
 %
-Consequentemente, o tempo de comunicação não é instantâneo, mas dominado pelo direcionamento mecânico ou eletrônico de feixes para estabelecer links.
+Consequentemente, o tempo de comunicação não é instantâneo, mas dominado pelo direcionamento mecânico ou eletrônico de feixes para estabelecer \emph{links}.
 %
 O problema da Cobertura Mínima por Varredura (MSC), introduzido por Fekete~et~al.~\cite{Fe21}, modela o escalonamento dessas comunicações par-a-par.
 %
-Diferentemente de cenários de \emph{broadcasting}, em que a informação se propaga de uma fonte a todos os demais, o MSC requer apenas a satisfação de um conjunto prescrito de links de comunicação, especificados pelas arestas de um grafo de entrada.
+Diferentemente de cenários de \emph{broadcasting}, em que a informação se propaga de uma fonte a todos os demais, o MSC requer apenas a satisfação de um conjunto prescrito de \emph{links} de comunicação, especificados pelas arestas de um grafo de entrada.
 %
 O objetivo é minimizar o tempo total necessário para completar todas as conexões, supondo que os satélites tenham posições estáticas, mas possam rotacionar suas antenas.
 %
@@ -118,13 +118,13 @@ Surpreendentemente, usando essas conexões, eles mostraram que uma aproximação
 %
 Apesar dessas dificuldades, eles propuseram algoritmos de aproximação com garantias de desempenho que dependem do número cromático.
 %
-Especificamente, eles apresentaram uma \mbox{$\frac{9}{2}$-aproximação} para grafos bipartidos, que estenderam para uma \mbox{$O(\gamma)$-aproximação}, com $\gamma \ge 1$, quando $G$ é dado junto com uma $k$-coloração própria de seus vértices, em que $k \leq \chi(G)^\gamma$.
+Especificamente, eles apresentaram uma \mbox{$\frac{9}{2}$-aproximação} para grafos bipartidos, que estenderam para uma \mbox{$O(\gamma)$-aproximação}, com $\gamma \ge 1$, quando $G$ é dado juntamente a uma $k$-coloração própria de seus vértices, em que $k \leq \chi(G)^\gamma$.
 
 Neste trabalho, apresentamos resultados para o MSC em 1D e em 2D.
 %
 Para 1D, apresentamos um algoritmo $\text{FPT}$ parametrizado pela largura arbórea de $G$.
 %
-Uma possível extensão desse algoritmo para o caso 2D não parece viável, e acreditamos que o MSC em 2D seja $W[1]$-difícil, parametrizado pela largura arbórea.
+Uma possível extensão desse algoritmo para o caso 2D não parece viável e acreditamos que o MSC em 2D seja $W[1]$-difícil, parametrizado pela largura arbórea.
 %
 Em vez disso, introduzimos um parâmetro adicional, denotado por $\lambda$, que é o ângulo mínimo não nulo necessário para que um satélite rotacione sua antena do alinhamento com um satélite vizinho em $G$ para o alinhamento com outro em $G$.
 %
@@ -135,6 +135,8 @@ Devido a restrições de espaço, omitimos partes das provas dos resultados, mas
 \section{Definição do Problema}
 
 Uma instância de MSC, denotada por $(P, G)$, consiste em um conjunto $P = \{p_1, \dots, p_n\}$ de pontos distintos em $\R^d$, em que cada $p_i \in P$ corresponde a um satélite, e em um grafo simples $G=(P, E)$ com $E\subseteq P\times P$.
+%
+Para um inteiro não negativo $N$, usamos a notação $[N]:=\{0,1,\dots,N\}$.
 %
 Os satélites podem rotacionar suas antenas livremente, e o tempo necessário para rotacioná-las é proporcional à mudança no ângulo de orientação.
 %
@@ -163,23 +165,42 @@ No caso unidimensional, os satélites estão posicionados ao longo da reta real 
 %
 Note que $\alpha$ pode assumir apenas os valores $0$ e $\pi$. Além disso, sem perda de generalidade, supomos que toda cobertura por varredura ótima mapeia cada aresta em múltiplos de $\pi$ e que, nesses instantes, cada antena de satélite está voltada para a direção positiva ou negativa.
 
-Como, uma vez que todas as arestas incidentes a um vértice $p_i\in P$ tenham sido varridas, $p_i$ cessa a rotação de sua antena, os fatos acima nos permitem mapear cada cobertura por varredura ótima $\cals$ para uma instância $(P, G)$ de MSC1D, com tempo de varredura $\pi N$, onde $N\in \N$, para uma única função $h\colon P \to \{0,1\}^{N+1}$.
+Como, uma vez que todas as arestas incidentes a um vértice $p_i\in P$ tenham sido varridas, $p_i$ cessa a rotação de sua antena, os fatos acima nos permitem mapear cada cobertura por varredura $\cals$ de uma instância $(P, G)$ de MSC1D, com tempo de varredura no máximo $\pi N$, onde $N\in \N$, para uma única função $h\colon P \to \{0,1\}^{N+1}$.
 %
 Para cada $p_i\in P$ e $j\in [N]$, se, no tempo $\pi j$, a antena de $p_i$ está voltada para a direção positiva, então ${h_j(p_i)=0}$; caso contrário, a antena está voltada para a direção negativa e ${h_j(p_i)=1}$.
 %
 Note que, em geral, esse mapeamento não é sobrejetor.
 %
-Uma função ${h\colon P \to \{0,1\}^{N+1}}$ corresponde a uma cobertura por varredura ótima $\cals$, de tempo de varredura $\pi N$, se e somente se, para cada aresta $p_ip_j\in E$, com $p_i<p_j$, existe um índice $m$ tal que ${h_m(p_i)=0}$ e ${h_m(p_j)=1}$.
+Ainda assim, existe uma cobertura por varredura de tempo no máximo $\pi N$ se e somente se existe uma função ${h\colon P \to \{0,1\}^{N+1}}$ tal que, para cada aresta $p_ip_j\in E$, com $p_i<p_j$, existe um índice $m$ tal que ${h_m(p_i)=0}$ e ${h_m(p_j)=1}$.
+%
+De fato, o sentido direto segue da definição de $h$: no instante em que $p_i$ e $p_j$ se comunicam, a antena do ponto à esquerda aponta para a direção positiva e a antena do ponto à direita aponta para a direção negativa.
+%
+Para o sentido inverso, dada uma função $h$ com essa propriedade, definimos, para cada aresta $e=p_ip_j$ com $p_i<p_j$,
+\[
+    \cals_h(e)=\pi \cdot \min\{m\in [N]\mid h_m(p_i)=0 \text{ e } h_m(p_j)=1\}.
+\]
+%
+Mostremos que $\cals_h$ é uma cobertura por varredura válida.
+%
+Considere duas arestas adjacentes $e$ e $f$ com vértice comum $p$.
+%
+Se os outros extremos de $e$ e $f$ estão do mesmo lado de $p$, então $\alpha(e,f)=0$.
+%
+Caso contrário, para varrer $e$ e $f$, a antena de $p$ deve apontar em direções opostas; portanto, os índices escolhidos pela definição de $\cals_h(e)$ e $\cals_h(f)$ não podem coincidir.
+%
+Como esses índices são inteiros, segue que $|\cals_h(e)-\cals_h(f)|\ge \pi=\alpha(e,f)$.
 
-Esse mapeamento de coberturas por varredura, ótimo para funções sobre os vértices de $G$, conecta o MSC1D a uma variante do clássico problema de $q$-Coloração, que pergunta se um dado grafo pode ser colorido corretamente com $q$ cores: cada vetor em $\{0,1\}^{N+1}$ pode ser interpretado como uma ``cor''.
+Esse mapeamento conecta o MSC1D a uma variante do clássico problema de $q$-Coloração, que pergunta se um dado grafo pode ser colorido propriamente com $q$ cores: cada vetor em $\{0,1\}^{N+1}$ pode ser interpretado como uma ``cor''.
 %
-Seja $\cals$ uma cobertura por varredura ótima de tempo de varredura $\pi N$ para uma instância dada de MSC1D.
-%
-De fato, após mapear $\cals$ para sua função correspondente $h$, podemos ver $h$ como uma coloração própria dos vértices de $G$, com cores em $\{0,1\}^{N+1}$, com o requisito adicional de que, para cada aresta $p_ip_j\in E$, com $p_i<p_j$, existe um índice $m$ tal que $h_m(p_i)=0$ e $h_m(p_j)=1$.
+Assim, podemos ver $h$ como uma coloração própria dos vértices de $G$, com cores em $\{0,1\}^{N+1}$, com o requisito adicional de que, para cada aresta $p_ip_j\in E$, com $p_i<p_j$, existe um índice $m$ tal que $h_m(p_i)=0$ e $h_m(p_j)=1$.
 
-Assim, podemos adaptar o algoritmo $\text{FPT}$ para $q$-Coloração~\cite{Cy15}, parametrizado pela largura arbórea $k$, que roda em tempo $q^k\cdot k^{O(1)}\cdot n$, para a versão de decisão do MSC1D, também parametrizada por $k$.
+Com isso, podemos adaptar o algoritmo $\text{FPT}$ para $q$-Coloração~\cite{Cy15}, parametrizado pela largura arbórea $k$, que executa em tempo $q^k\cdot k^{O(1)}\cdot n$, para a versão de decisão do MSC1D, também parametrizada por $k$.
 %
-Precisamos apenas incorporar a restrição adicional sobre as cores atribuídas aos vértices adjacentes de $G$. Podemos verificar se duas cores diferentes podem ser atribuídas a um par de nós vizinhos em tempo $N^{O(1)}$; então, essa modificação pode ser adicionada, mantendo ainda um tempo de execução $\text{FPT}$.
+Precisamos apenas incorporar a restrição adicional sobre as cores atribuídas aos vértices adjacentes de $G$.
+%
+Podemos verificar se duas cores diferentes podem ser atribuídas a um par de nós vizinhos em tempo $N^{O(1)}$: basta testar se há uma coordenada $m$ em que a cor do vértice à esquerda tem valor $0$ e a cor do vértice à direita tem valor $1$.
+%
+Esse custo é pago nas verificações de compatibilidade das arestas e acrescenta apenas o fator $N^{O(1)}$ ao tempo de execução da programação dinâmica; portanto, essa modificação pode ser adicionada mantendo ainda um tempo de execução $\text{FPT}$.
 %
 Portanto, dada uma instância MSC1D $(P, G)$ em que a largura arbórea de $G$ é $k$ e um limite de tempo de $O(\pi N)$, podemos decidir se existe uma cobertura por varredura de tempo no máximo $O(\pi N)$ em tempo $O((2^{N+1})^k\cdot N^{O(1)}\cdot k^{O(1)}\cdot n)$.
 
@@ -191,7 +212,7 @@ $\ceil{\log_2 \chi(G) + \nicefrac{1}{4}\log_2 \log_2 \chi(G)} \le N \leq \ceil{\
 %
 Portanto, aplicamos busca binária sobre os inteiros neste intervalo para estender o algoritmo da versão de decisão para a de otimização.
 %
-Como é padrão na literatura, supomos que, junto com a instância de entrada, também recebemos uma decomposição em árvore \emph{nice} de largura $k$ com nós de introdução de aresta do grafo de entrada $G$ (consulte~\cite{Cy15} para uma definição de tal decomposição).
+Como é padrão na literatura, supomos que, junto com a instância de entrada, também recebemos uma decomposição arbórea \emph{nice} de largura $k$ com nós de introdução de aresta do grafo de entrada $G$ (consulte~\cite{Cy15} para uma definição de tal decomposição).
 %
 Por fim, obtemos o seguinte lembrando que $\chi(G) \leq k + 1$~\cite{Cy15}. \medskip
 
@@ -248,7 +269,7 @@ Paralelamente, para o MSC em 3D, fornecer quaisquer limites inferiores ou superi
 Damos uma prova formal do resultado declarado pelo Teorema~\ref{teo:msc2d}:
 
 \begin{proof}
-    Seja $I=(P, G)$ uma instância MSC2D dada juntamente com uma decomposição em árvore \emph{nice} de largura $k$, $\calt = {(T, \{X_t\}_{t\in V(T)})}$, com nós de introdução de aresta de $G$, e seja $r$ a raiz designada de $T$.
+    Seja $I=(P, G)$ uma instância MSC2D dada juntamente com uma decomposição arbórea \emph{nice} de largura $k$, $\calt = {(T, \{X_t\}_{t\in V(T)})}$, com nós de introdução de aresta de $G$, e seja $r$ a raiz designada de $T$.
     %
     Denote por $t^*$ o tempo de varredura ótimo para uma cobertura por varredura de $I$, e seja $\lambda$ o menor valor não nulo da função de custo $\alpha$ para $I$.
 
@@ -405,9 +426,9 @@ Damos uma prova formal do resultado declarado pelo Teorema~\ref{teo:msc2d}:
         Portanto, $\cals'\colon E\to \R^+$, com $\cals'(g)=\floor{\nicefrac{\cals^*(g)}{\theta}}\theta$ para todo $g\in E$, constitui uma solução válida para o problema relaxado $\hat I$ com as propriedades exigidas.
     \end{proof}
 
-    Usamos programação dinâmica baseada na decomposição em árvore \emph{nice} $\calt$ para computar uma cobertura ótima por varredura $\hat \cals$ para $\hat I$.
+    Usamos programação dinâmica baseada na decomposição arbórea \emph{nice} $\calt$ para computar uma cobertura ótima por varredura $\hat \cals$ para $\hat I$.
     %
-    Para um nó $t\in V(T)$ na decomposição em árvore, sejam $P_t$ e $E_t$ os conjuntos de vértices e arestas, respectivamente, introduzidos na subárvore de $T$ enraizada em $t$, incluindo $t$ e todos os seus descendentes. Seja $G_t = (P_t, E_t)$ o subgrafo correspondente de $G$ e $F_t$ as arestas de $E_t$ que também estão presentes em $G[X_t]$.
+    Para um nó $t\in V(T)$ na decomposição arbórea, sejam $P_t$ e $E_t$ os conjuntos de vértices e arestas, respectivamente, introduzidos na subárvore de $T$ enraizada em $t$, incluindo $t$ e todos os seus descendentes. Seja $G_t = (P_t, E_t)$ o subgrafo correspondente de $G$ e $F_t$ as arestas de $E_t$ que também estão presentes em $G[X_t]$.
     %
     Além disso, seja $\hat I_t = (P_t, G_t)$ a instância da versão relaxada do MSC2D obtida ao restringir $\hat I$ a $G_t$.
     %
