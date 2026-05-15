@@ -1,13 +1,29 @@
+# OS/editor metadata
+.DS_Store
 .dropbox
 desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
+# LaTeX build directories
+.latex-build/
+
+# LaTeX intermediates
 *.aux
-*.bit
-*.blg
+*.acn
+*.acr
+*.alg
 *.bbl
-*.lof
-*.log
-*.lot
+*.bcf
+*.blg
+*.brf
+*.bit
+*.dvi
+*.fdb_latexmk
+*.fls
 *.glo
 *.glx
 *.gxg
@@ -15,26 +31,31 @@ desktop.ini
 *.idx
 *.ilg
 *.ind
-*.out
-*.url
-*.toc
-*.synctex.gz
-*.snm
-*.vrb
-*~
+*.ist
+*.lof
+*.log
+*.lot
 *.nav
+*.out
+*.pdfsync
+*.run.xml
+*.snm
+*.spl
+*.synctex
+*.synctex.gz
+*.synctex.gz(busy)
+*.toc
+*.vrb
+*.xdv
+
+# Generated documents
+*.pdf
+
+# Backups
 *.backup
 *.bak
-*.fdb_latexmk
-*.fls
-*.bcf
-*.run.xml
-
-*.spl
-
-*.swp
-*.swo
-
-*.brf
-
-*.pdf
+*.orig
+*.rej
+*.tmp
+*.url
+*.zip
