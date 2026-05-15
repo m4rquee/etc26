@@ -1,0 +1,531 @@
+\documentclass[12pt]{article}
+
+\usepackage{sbc-template}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage{mathtools}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{nicefrac}
+
+% tikz
+\usepackage{tikz}
+\usetikzlibrary{ipe} % ipe compatibility library
+\usetikzlibrary{calc, arrows, arrows.meta, patterns}
+
+% Proof environments:
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Teorema}
+\newtheorem{corollary}{Corollary}
+\newtheorem{conjecture}{Conjecture}
+\newtheorem{lemma}{Lema}
+\newtheorem{observation}{Observação}
+
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+\newcommand{\dist}{\ensuremath{\text{dist}}}
+\newcommand{\cost}{\ensuremath{\text{cost}}}
+\newcommand{\R}{\rm I\!R}
+\newcommand{\N}{\rm I\!N}
+\newcommand{\opt}{\text{OPT}}
+\newcommand{\call}{\mathcal{L}}
+\newcommand{\cals}{\mathcal{S}}
+\newcommand{\calt}{\mathcal{T}}
+\newcommand{\ovl}[2]{\overline{#1}_{#2}}
+\newcommand\rest[2]{\left.{#1}\right|_{#2}} % function restriction
+
+\sloppy
+
+\title{
+    Uma Aproximação FPT Linear para o Problema da\\
+    Cobertura Mínima por Varredura%
+    \thanks{
+        Apoiado pela Fundação de Amparo à Pesquisa do Estado de São Paulo~(FAPESP), processo
+        %
+        \mbox{2023/12529-8},
+        %
+        e pelo Conselho Nacional de Desenvolvimento Científico e Tecnológico~(CNPq), processos
+        %
+        \mbox{\#312271/2023-9} e % pq leh
+        \mbox{\#404315/2023-2}.  % univ fkm
+    }
+}
+
+\author{Lehilton Lelis Chaves Pedrosa\inst{1},
+    Lucas de Oliveira Silva\inst{1}\thanks{Corresponding author.}}
+
+\address{
+    Instituto de Computação -- Universidade Estadual de Campinas (Unicamp)\\
+    Campinas -- SP -- Brasil
+    \email{\{lehilton,lucas.oliveira.silva\}@ic.unicamp.br}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+    The Minimum Scan Cover (MSC) problem schedules pairwise communication among a satellite swarm using directional antennas. Satellites are points in a Euclidean space, and alignment costs are proportional to the rotation angles.
+    %
+    The goal is to minimize the total time to complete the connections described as edges of an input graph.
+    %
+    Approximating MSC within a constant factor is \mbox{NP-hard}, even in the 1D case, thus we employ treewidth parameterization.
+    %
+    For 1D instances, we provide an exact linear FPT algorithm.
+    %
+    For 2D, we introduce the minimum non-zero neighbor-switching angle as a second parameter to design a linear FPT 2-approximation.
+\end{abstract}
+
+\begin{resumo}
+    O problema da Cobertura Mínima por Varredura (MSC) escalona as comunicações par-a-par em enxames de satélites usando antenas direcionais. Satélites são pontos em um espaço Euclidiano, e os custos de alinhamento são proporcionais aos ângulos de rotação.
+    %
+    O objetivo é minimizar o tempo total necessário para completar as conexões descritas como arestas de um grafo de entrada.
+    %
+    Aproximar o MSC por um fator constante é NP-difícil, mesmo no caso 1D, então empregamos parametrização pela largura arbórea.
+    %
+    Para instâncias 1D, fornecemos um algoritmo exato de tempo FPT linear.
+    %
+    Para 2D, introduzimos o ângulo mínimo não nulo de troca entre vizinhos como segundo parâmetro para projetar uma 2-aproximação de tempo FPT linear.
+\end{resumo}
+
+\section{Introdução}
+
+Desafios de otimização em robótica de enxames frequentemente giram em torno da comunicação eficiente sob restrições físicas.
+%
+No contexto de enxames de satélites, estabelecer uma rede de comunicação confiável é crítico para tarefas como o controle de topologia, a agregação de dados e as verificações periódicas de saúde (\emph{health checks}).
+%
+No entanto, devido à alta atenuação do sinal em transmissões omnidirecionais no espaço sideral, os satélites dependem de antenas direcionais que exigem alinhamento preciso entre o transmissor e o receptor~\cite{WikiLaser}.
+%
+Consequentemente, o tempo de comunicação não é instantâneo, mas dominado pelo direcionamento mecânico ou eletrônico de feixes para estabelecer links.
+%
+O problema da Cobertura Mínima por Varredura (MSC), introduzido por Fekete~et~al.~\cite{Fe21}, modela o escalonamento dessas comunicações par-a-par.
+%
+Diferentemente de cenários de \emph{broadcasting}, em que a informação se propaga de uma fonte a todos os demais, o MSC requer apenas a satisfação de um conjunto prescrito de links de comunicação, especificados pelas arestas de um grafo de entrada.
+%
+O objetivo é minimizar o tempo total necessário para completar todas as conexões, supondo que os satélites tenham posições estáticas, mas possam rotacionar suas antenas.
+%
+A função de custo é dada pelo tempo gasto em ajustes angulares para alinhar as antenas.
+%
+Para uma exploração mais abrangente do MSC e de outros problemas relacionados ao controle do enxame de robôs, consulte a tese de doutorado de Krupke~\cite{Kru22} e a dissertação de mestrado de Silva~\cite{Lu25}.
+
+Como Fekete~et~al.~observaram, o MSC em 1D e 2D está intimamente ligada à coloração de grafos~\cite{Fe21}.
+%
+Em particular, eles mostraram que, dada uma instância de MSC com grafo $G$, o tempo ótimo total para completar todas as comunicações é $\Theta(\log{\chi(G)})$.
+%
+Surpreendentemente, usando essas conexões, eles mostraram que uma aproximação de fator constante para o MSC implicaria $\text{P} = \text{NP}$, mesmo em 1D. Para instâncias 2D, eles provaram que encontrar uma solução com um fator de aproximação menor que $\nicefrac{3}{2}$ é NP-difícil, mesmo para grafos bipartidos.
+%
+Apesar dessas dificuldades, eles propuseram algoritmos de aproximação com garantias de desempenho que dependem do número cromático.
+%
+Especificamente, eles apresentaram uma \mbox{$\frac{9}{2}$-aproximação} para grafos bipartidos, que estenderam para uma \mbox{$O(\gamma)$-aproximação}, com $\gamma \ge 1$, quando $G$ é dado junto com uma $k$-coloração própria de seus vértices, em que $k \leq \chi(G)^\gamma$.
+
+Neste trabalho, apresentamos resultados para o MSC em 1D e em 2D.
+%
+Para 1D, apresentamos um algoritmo $\text{FPT}$ parametrizado pela largura arbórea de $G$.
+%
+Uma possível extensão desse algoritmo para o caso 2D não parece viável, e acreditamos que o MSC em 2D seja $W[1]$-difícil, parametrizado pela largura arbórea.
+%
+Em vez disso, introduzimos um parâmetro adicional, denotado por $\lambda$, que é o ângulo mínimo não nulo necessário para que um satélite rotacione sua antena do alinhamento com um satélite vizinho em $G$ para o alinhamento com outro em $G$.
+%
+Nós apresentamos uma $2$-aproximação de tempo $\text{FPT}$ linear, parametrizada pela largura arbórea de $G$ e por $\lceil \nicefrac{1}{\lambda} \rceil$.
+
+Devido a restrições de espaço, omitimos partes das provas dos resultados, mas o leitor pode consultar a dissertação de mestrado de Silva para uma exposição aprofundada~\cite{Lu25}.
+
+\section{Definição do Problema}
+
+Uma instância de MSC, denotada por $(P, G)$, consiste em um conjunto $P = \{p_1, \dots, p_n\}$ de pontos distintos em $\R^d$, em que cada $p_i \in P$ corresponde a um satélite, e em um grafo simples $G=(P, E)$ com $E\subseteq P\times P$.
+%
+Os satélites podem rotacionar suas antenas livremente, e o tempo necessário para rotacioná-las é proporcional à mudança no ângulo de orientação.
+%
+Para cada instância $(P, G)$ de MSC, podemos definir unicamente sua \emph{função de custo} \mbox{$\alpha\colon \{ (e, e')\in {E\times E}\ |\ e\cap e' \ne\emptyset \} \to \R^+$}, onde $\alpha((u, v), (u, w))$ é o menor ângulo formado pelos segmentos $\overline{uv}$ e $\overline{uw}$, o que equivale a $\arccos{(\frac{x\cdot y}{||x||_2\cdot ||y||_2})}$, com $x=v-u$ e $y=w-u$. Note que todos os valores de $\alpha$ estão em $[0, \pi]$.
+
+Uma solução para uma instância é uma função ${\cals\colon E\to \R^+}$, chamada \emph{cobertura por varredura} (\emph{scan cover}), que mapeia as arestas a instantes de tempo, de modo que, para cada par de arestas adjacentes $e$ e $f$, vale que ${|\cals(e) - \cals(f)| \geq \alpha(e, f)}$.
+%
+O objetivo do MSC é encontrar uma cobertura por varredura $\cals$ que minimize o \emph{tempo de varredura}, definido como $\max\limits_{e\in E} \cals(e)$.
+%
+Por simplicidade, assumimos que uma vez que todas as arestas incidentes a um satélite tenham sido varridas, ele cessa de rotacionar sua antena.
+
+Quando o espaço Euclidiano subjacente tem dimensões $1$ ou $2$, referimo-nos às respectivas variantes do MSC, MSC1D e MSC2D.
+%
+Note que uma cobertura por varredura é completamente definida por uma permutação das arestas, pois é mais eficiente rotacionar diretamente entre varreduras sucessivas, usando o ângulo mínimo.
+%
+Além disso, para cada permutação das arestas $e_1, \dots, e_m$ de $E(G)$, a cobertura por varredura ótima varrendo as arestas nesta ordem pode ser recuperada da seguinte forma:
+$
+\cals(e_1) = 0 \quad \text{e} \quad
+\cals(e_i) = \max_{j < i\ \text{e}\ e_i \cap e_j \neq \emptyset} \left\{ \cals(e_j) + \alpha(e_i, e_j) \right\} \ \ \text{para } i > 1.
+$
+
+\section{Conjuntos de Pontos Unidimensionais}
+\label{sec:msc1d}
+
+No caso unidimensional, os satélites estão posicionados ao longo da reta real $\R$. Assim, eles se comunicam alternando as antenas entre apontar para a direção positiva e a negativa.
+%
+Note que $\alpha$ pode assumir apenas os valores $0$ e $\pi$. Além disso, sem perda de generalidade, supomos que toda cobertura por varredura ótima mapeia cada aresta em múltiplos de $\pi$ e que, nesses instantes, cada antena de satélite está voltada para a direção positiva ou negativa.
+
+Como, uma vez que todas as arestas incidentes a um vértice $p_i\in P$ tenham sido varridas, $p_i$ cessa a rotação de sua antena, os fatos acima nos permitem mapear cada cobertura por varredura ótima $\cals$ para uma instância $(P, G)$ de MSC1D, com tempo de varredura $\pi N$, onde $N\in \N$, para uma única função $h\colon P \to \{0,1\}^{N+1}$.
+%
+Para cada $p_i\in P$ e $j\in [N]$, se, no tempo $\pi j$, a antena de $p_i$ está voltada para a direção positiva, então ${h_j(p_i)=0}$; caso contrário, a antena está voltada para a direção negativa e ${h_j(p_i)=1}$.
+%
+Note que, em geral, esse mapeamento não é sobrejetor.
+%
+Uma função ${h\colon P \to \{0,1\}^{N+1}}$ corresponde a uma cobertura por varredura ótima $\cals$, de tempo de varredura $\pi N$, se e somente se, para cada aresta $p_ip_j\in E$, com $p_i<p_j$, existe um índice $m$ tal que ${h_m(p_i)=0}$ e ${h_m(p_j)=1}$.
+
+Esse mapeamento de coberturas por varredura, ótimo para funções sobre os vértices de $G$, conecta o MSC1D a uma variante do clássico problema de $q$-Coloração, que pergunta se um dado grafo pode ser colorido corretamente com $q$ cores: cada vetor em $\{0,1\}^{N+1}$ pode ser interpretado como uma ``cor''.
+%
+Seja $\cals$ uma cobertura por varredura ótima de tempo de varredura $\pi N$ para uma instância dada de MSC1D.
+%
+De fato, após mapear $\cals$ para sua função correspondente $h$, podemos ver $h$ como uma coloração própria dos vértices de $G$, com cores em $\{0,1\}^{N+1}$, com o requisito adicional de que, para cada aresta $p_ip_j\in E$, com $p_i<p_j$, existe um índice $m$ tal que $h_m(p_i)=0$ e $h_m(p_j)=1$.
+
+Assim, podemos adaptar o algoritmo $\text{FPT}$ para $q$-Coloração~\cite{Cy15}, parametrizado pela largura arbórea $k$, que roda em tempo $q^k\cdot k^{O(1)}\cdot n$, para a versão de decisão do MSC1D, também parametrizada por $k$.
+%
+Precisamos apenas incorporar a restrição adicional sobre as cores atribuídas aos vértices adjacentes de $G$. Podemos verificar se duas cores diferentes podem ser atribuídas a um par de nós vizinhos em tempo $N^{O(1)}$; então, essa modificação pode ser adicionada, mantendo ainda um tempo de execução $\text{FPT}$.
+%
+Portanto, dada uma instância MSC1D $(P, G)$ em que a largura arbórea de $G$ é $k$ e um limite de tempo de $O(\pi N)$, podemos decidir se existe uma cobertura por varredura de tempo no máximo $O(\pi N)$ em tempo $O((2^{N+1})^k\cdot N^{O(1)}\cdot k^{O(1)}\cdot n)$.
+
+O Teorema~1 com o Lema~1 de Fekete~et~al.~\cite{Fe21} garante que, para qualquer instância MSC1D $(P, G)$ onde ${\chi(G) > 2}$, existe uma cobertura por varredura de tempo de varredura $\pi N$ para $N\in \N$ tal que
+%
+$\ceil{\log_2 \chi(G) + \nicefrac{1}{4}\log_2 \log_2 \chi(G)} \le N \leq \ceil{\log_2 \chi(G) + \nicefrac{1}{2}\log_2 \log_2 \chi(G) + 1}$.
+%
+É fácil ver que, caso ${\chi(G) \le 2}$, o MSC1D torna-se trivial.
+%
+Portanto, aplicamos busca binária sobre os inteiros neste intervalo para estender o algoritmo da versão de decisão para a de otimização.
+%
+Como é padrão na literatura, supomos que, junto com a instância de entrada, também recebemos uma decomposição em árvore \emph{nice} de largura $k$ com nós de introdução de aresta do grafo de entrada $G$ (consulte~\cite{Cy15} para uma definição de tal decomposição).
+%
+Por fim, obtemos o seguinte lembrando que $\chi(G) \leq k + 1$~\cite{Cy15}. \medskip
+
+\begin{theorem}
+    \label{teo:msc1d}
+    Seja $(P, G)$ uma instância do MSC1D em que $G$ possui largura arbórea $k$. Então, pode-se computar uma cobertura por varredura ótima $\cals$ em tempo $k^{O(k)} \cdot n$.
+\end{theorem}
+
+\section{Conjuntos de Pontos Bidimensionais}
+
+Consideramos agora o MSC2D.
+%
+O maior grau de liberdade torna o problema significativamente mais difícil.
+%
+De fato, enquanto o MSC1D pode ser resolvido em tempo polinomial para grafos bipartidos, o MSC2D é NP-difícil de aproximar com fator de aproximação inferior a $\nicefrac{3}{2}$~\cite{Fe21}.
+%
+A observação a seguir estabelece um limite superior para o tempo de varredura ótimo em instâncias MSC2D, em função da largura arbórea $G$, o que é fundamental para o nosso algoritmo. A prova dessa observação segue do Teorema~5 de Fekete~et~al.~\cite{Fe21}. \medskip
+
+\begin{observation}
+    \label{obs:msc2d}
+    Seja $(P, G)$ uma instância MSC2D com tempo de varredura ótimo $t^*$. Se a largura arbórea de $G$ é $k$, então $t^* \le 3\pi\ceil{\log_2(k+1)}$.
+\end{observation}
+
+Acreditamos que o MSC2D possa ser \mbox{$W[1]$-difícil} quando parametrizado apenas pela largura arbórea, o que sugere que uma extensão simples do algoritmo exato para MSC1D é improvável.
+%
+Em vez disso, introduzimos um parâmetro adicional e consideramos aproximações.
+%
+Obtivemos uma $2$-aproximação parametrizada pela largura arbórea $k$ e por $\ceil{\nicefrac{1}{\lambda}}$, onde $\lambda$ é o valor mínimo não nulo da função de custo $\alpha$. Note que $\lambda\le \pi$. Nosso algoritmo roda em tempo $\text{FPT}$ linear. \medskip
+
+\begin{theorem}
+    \label{teo:msc2d}
+    Existe uma $2$-aproximação para MSC2D, parametrizada pela largura arbórea $k$ e por $\ceil{\nicefrac{1}{\lambda}}$, com tempo $\lambda^{-O(k^2+\frac{k\log k}{\lambda})}\cdot (\log k)^{O(k^2)}\cdot n$.
+\end{theorem}
+
+A ideia central do algoritmo é discretizar o espaço ao redor de cada satélite, permitindo apenas rotações que ocorram em múltiplos de um passo angular $\theta$ que depende de $\lambda$.
+%
+Dessa forma, obtemos, inicialmente, uma solução para um problema relaxado, que tornamos válida para o problema original ao multiplicar por 2 todos os valores de tempo atribuídos às arestas.
+
+\section{Conclusão}
+
+Vários problemas em aberto permanecem para o MSC. Um primeiro passo seria remover a dependência de $\ceil{\nicefrac{1}{\lambda}}$ da aproximação parametrizada apresentada no Teorema \ref{teo:msc2d}, deixando apenas a largura arbórea, o que melhoraria o fator de aproximação para $1+\epsilon$, ou propor um algoritmo $\text{FPT}$ exato, caso seja possível.
+%
+Paralelamente, para o MSC em 3D, fornecer quaisquer limites inferiores ou superiores não triviais é de grande interesse.
+
+\bibliographystyle{sbc}
+\bibliography{main}
+
+\clearpage
+\appendix
+
+\section{Prova do Teorema~\ref{teo:msc2d}}
+\label{app:recurrences}
+
+Damos uma prova formal do resultado declarado pelo Teorema~\ref{teo:msc2d}:
+
+\begin{proof}
+    Seja $I=(P, G)$ uma instância MSC2D dada juntamente com uma decomposição em árvore \emph{nice} de largura $k$, $\calt = {(T, \{X_t\}_{t\in V(T)})}$, com nós de introdução de aresta de $G$, e seja $r$ a raiz designada de $T$.
+    %
+    Denote por $t^*$ o tempo de varredura ótimo para uma cobertura por varredura de $I$, e seja $\lambda$ o menor valor não nulo da função de custo $\alpha$ para $I$.
+
+    Sem perda de generalidade, assuma que não há vértices isolados e que $G$ é conexo, pois componentes conexos distintos não se interferem entre si e podem ser tratados separadamente. Assuma que o grau máximo de $G$ seja maior que 1; caso contrário, $I$ pode ser resolvido otimamente em tempo polinomial.
+    %
+    Note que, se $\lambda=\pi$, a instância efetivamente se comporta como um caso unidimensional e pode ser resolvida pelo algoritmo da Seção~\ref{sec:msc1d}. Assim, consideramos que $\lambda<\pi$. Seja $M$ o maior inteiro tal que $\frac{2\pi}{2M}\ge\lambda$, isto é, $M:=\floor{\nicefrac{\pi}{\lambda}}\ge 1$.
+
+    Para cada satélite $p_j \in P$, particionamos o espaço ao redor de $p_j$ em $4M$ \emph{setores}.
+    %
+    Cada setor tem um ângulo de~${\theta:=\frac{\pi}{2M}}$.
+    %
+    Note que $\theta = \frac{\pi}{2M}\cdot \frac{M+1}{M+1} < \lambda$, porque, por definição, $\frac{\pi}{M+1} < \lambda$.
+    %
+    Denotamos os setores de $p_j$ por $c_l$ para $l \in [4M-1]$, onde cada setor $c_l$ tem $p_j$ como sua extremidade e abrange todas as semirretas originadas em $p_j$ que formam ângulos no intervalo $[l \cdot \theta, (l+1) \cdot \theta)$, medidos no sentido anti-horário, em relação ao eixo $x$.
+    %
+    Além disso, seja \mbox{$c'_l := c_{(l+2M) \mathbin{\text{ mod }} 4M}$} o setor \emph{oposto} a $c_l$.
+    %
+    Note que um segmento $\overline{p_ip_j}$ está no setor $c_l$ de $p_i$ se e somente se ele também está no setor oposto $c'_l$ de~$p_j$.
+    %
+    A \emph{bissetriz} de um setor $c_l$ é a semirreta de ponto inicial $p_j$ que o divide ao meio, formando um ângulo de $l\cdot\theta + \nicefrac{\theta}{2}$ com o eixo $x$.
+    %
+    Para um exemplo ilustrativo deste particionamento, veja a Figura~\ref{fig:msc2d}.
+
+    \begin{figure}[!h]
+        \centering
+        \begin{tikzpicture}[scale=1.1]
+            % Parâmetros
+            \def\angle{45} % Tamanho do ângulo de cada setor
+            \def\sectorRadius{2} % Raio para os setores
+            \def\rayRadius{1.1*\sectorRadius}
+            \def\biRadius{0.7*\sectorRadius}
+
+            % Posições dos vértices
+            \coordinate (u) at (0, 0);
+            \coordinate (v) at (7, 1.5);
+
+            % Desenhar linhas tracejadas de limite do setor para o vértice u
+            \draw[dashed, red] (u) -- (0:3*\sectorRadius);
+            \draw[dashed, red] (u) -- (\angle:1.5*\sectorRadius);
+            \foreach \i in {0, 1} \draw[dashed, gray] (u) -- ({\i * \angle + 180}:\rayRadius);
+
+            \foreach \i in {2, 3} {
+                    \draw[dashed, gray] (u) -- ({\i * \angle}:\rayRadius);
+                    \draw[dashed, gray] (u) -- ({\i * \angle + 180}:\rayRadius);
+                }
+
+            % Desenhar linhas tracejadas de limite do setor para o vértice v
+            \draw[dashed, red] (v) -- ++({180}:3*\sectorRadius);
+            \draw[dashed, red] (v) -- ++({\angle + 180}:1.5*\sectorRadius);
+            \foreach \i in {0, 1} \draw[dashed, gray] (v) -- ++({\i * \angle}:\rayRadius);
+
+            \foreach \i in {2, 3} {
+                    \draw[dashed, gray] (v) -- ++({\i * \angle+180}:\rayRadius);
+                    \draw[dashed, gray] (v) -- ++({\i * \angle}:\rayRadius);
+                }
+
+            % Adicionar ângulos rotulados
+            \draw[Bracket-Bracket] (\angle/2:1.2*\sectorRadius) arc[start angle=\angle/2, end angle=0, radius=1.2*\sectorRadius];
+            \draw[Bracket-Bracket] (0:1.2*\sectorRadius) arc[start angle=0, end angle=-\angle/2, radius=1.2*\sectorRadius];
+            \node at (0.13*\angle:1.35*\sectorRadius) {$\nicefrac{\theta}{2}$};
+            \node at (-0.37*\angle:1.35*\sectorRadius) {$\nicefrac{\theta}{2}$};
+
+            % Destacar setor ci e c'_i para vértice u
+            \fill[blue!20, opacity=0.7] (u) -- (0:\sectorRadius) arc[start angle=0, end angle=\angle, radius=\sectorRadius];
+            % \fill[orange!40, opacity=0.7] (u) -- (180:\sectorRadius) arc[start angle=180, end angle={180+\angle}, radius=\sectorRadius];
+            \node[blue!70!black] at ({0.7*\angle}:.9*\sectorRadius) {$c_l$};
+            % \node[orange!70!black] at ({180+\angle/2}:.9*\sectorRadius) {$c'_l$};
+
+            % Destacar setor ci e c'_i para vértice v
+            \fill[orange!40, opacity=0.7] (v) -- ++(180:\sectorRadius) arc[start angle=180, end angle={180+\angle}, radius=\sectorRadius];
+            % \fill[blue!20, opacity=0.7] (v) -- ++(0:\sectorRadius) arc[start angle=0, end angle=\angle, radius=\sectorRadius];
+            % \node[blue!70!black] at ($(v) + ({\angle/2}:.9*\sectorRadius)$) {$c_l$};
+            \node[orange!70!black] at ($(v) + ({180+0.7*\angle}:.9*\sectorRadius)$) {$c'_l$};
+
+            % Desenhar bissetrizes para setores do vértice u
+            \draw[thick, blue, -implies, double equal sign distance] (u) -- ({\angle/2}:1.4*\sectorRadius);
+            \draw[dotted, thick] (u) -- ({-\angle/2}:1.4*\sectorRadius);
+            \draw[dotted, thick, ->] (u) -- ({180+\angle/2}:\biRadius);
+
+            \foreach \i in {2, 3, 4} {
+                    \draw[dotted, thick, ->] (u) -- ({2 * \i * \angle/2 - \angle/2}:\biRadius);
+                    \draw[dotted, thick, ->] (u) -- ({180+2 * \i * \angle/2 - \angle/2}:\biRadius);
+                }
+
+            % Desenhar bissetrizes para setores do vértice v
+            \draw[dotted, thick, ->] (v) -- ++({\angle/2}:\biRadius);
+            \draw[thick, orange, -implies, double equal sign distance] (v) -- ++({180+\angle/2}:1.4*\sectorRadius);
+
+            \foreach \i in {2, 3, 4} {
+                    \draw[dotted, thick, ->] (v) -- ++({2 * \i * \angle/2 - \angle/2}:\biRadius);
+                    \draw[dotted, thick, ->] (v) -- ++({180+2 * \i * \angle/2 - \angle/2}:\biRadius);
+                }
+
+            % Desenhar vértices
+            \fill (u) circle (2pt);
+            \node at ($(u) + (-2, 1)$) {\Huge $p_i$};
+            \fill (v) circle (2pt);
+            \node at ($(v) + (-2, 1)$) {\Huge $p_j$};
+
+            % Desenhar aresta
+            \draw[thick] (u) -- (v);
+        \end{tikzpicture}
+        \caption{
+            O espaço ao redor de cada satélite é dividido em $4M$ setores de ângulo $\theta$. Um satélite apenas rotaciona suas antenas a partir do alinhamento com as bissetrizes de seus setores (mostradas como setas), e faz isso em passos discretos. Um segmento $\overline{p_ip_j}$ que reside no segmento $c_l$ para $p_i$, reside no segmento oposto $c'_l$ para $p_j$. A aresta $p_ip_j$ é varrida porque a antena de $p_i$ está dentro de $c_l$ e a antena de $p_j$ está dentro de $c'_l$, embora as antenas não estejam voltadas uma para a outra.
+        }
+        \label{fig:msc2d}
+    \end{figure}
+
+    Agora, resolvemos uma versão relaxada do MSC2D, dependendo de $\theta$, e consideramos uma instância correspondente, ${\hat I:=I}$.
+    %
+    Nomeadamente, nesta versão, não exigimos que as antenas estejam voltadas uma para a outra para se comunicarem. Em vez disso, exigimos apenas que elas estejam dentro dos setores de seus satélites que contêm o segmento $\overline{p_ip_j}$ correspondente à aresta $p_ip_j\in E$ a ser varrida. Portanto, as antenas de satélites vizinhos devem estar apenas voltadas para os setores opostos enquanto se comunicam entre si.
+    %
+    Além disso, as rotações de antena são discretizadas nesta versão, permitindo apenas trocas entre as bissetrizes dos setores de seu satélite.
+    %
+    Alternar entre bissetrizes de setores consecutivos, módulo $4M$, requer, portanto, tempo proporcional a $\theta$ (veja a Figura~\ref{fig:msc2d}).
+    %
+    Além disso, podemos assumir, sem perda de generalidade, que toda cobertura por varredura ótima para o problema relaxado mapeia cada aresta em múltiplos de $\theta$ e que, nesses pontos no tempo, cada satélite aponta sua antena para uma de suas $4M$ possíveis direções de bissetriz para comunicação.
+
+    Como nas provas dos Teoremas \ref{teo:msc1d}, usamos esses dois fatos para mapear cada cobertura por varredura ótima $\hat\cals$ para $\hat I$, de tempo de varredura $\theta N$ onde $N \in \N$, para uma única função \mbox{$\hat h\colon P \to [4M-1]^{N+1}$}.
+    %
+    Aqui, $\hat h_j(p_i) = l$ indica que, no tempo $\theta_j$, a antena de $p_i$ está alinhada à bissetriz de seu setor $c_l$.
+    %
+    Chamamos $\hat h(p_i)$ de \emph{histórico de direção} de $p_i$ com base em $\hat\cals$.
+    %
+    Novamente, esse mapeamento não é sobrejetor e uma função $\hat h\colon P \to [4M-1]^{N+1}$ corresponde a uma cobertura por varredura ótima $\hat\cals$ para $\hat I$, de tempo de varredura $\theta N$, se e somente se duas condições forem satisfeitas:
+    %
+    Primeiro, para cada aresta $p_ip_j \in E$, existe um índice $m$ tal que o setor $c_x$ de $p_i$, onde $x = \hat h_m(p_i)$, contém o segmento $\overline{p_ip_j}$, e o setor $c_y$ de $p_j$, onde $y = \hat h_m(p_j)$, também contém $\overline{p_ip_j}$. Além disso, $c_x$ e $c_y$ são setores opostos.
+    %
+    Segundo, para cada $p_i\in P$ e cada $j\in [N-1]$, as bissetrizes representadas por $\hat h_j(p_i)$ e $\hat h_{j+1}(p_i)$ formam um ângulo de $\theta$ entre si, isto é, $\hat h_j(p_i)$ e $\hat h_{j+1}(p_i)$ são consecutivas módulo $4M$. Chamamos um vetor que obedece a essa propriedade de \emph{realizável}.
+    %
+    Para um vetor $v \in [4M-1]^{N+1}$, definimos $\cost(v)$ como o tempo total que um satélite com histórico de direção $v$ leva para completar todas as rotações e parar. Se $v$ não for realizável, então $cost(v) = \infty$. Caso contrário, $cost(v)$ é dado por $\theta \cdot (\max_{v_{i-1} \ne v_i} i)$.
+
+    Pela Observação \ref{obs:msc2d} e porque qualquer solução para $I$ induz uma solução para $\hat I$, existe uma cobertura por varredura para a instância $\hat I$ de tempo de varredura $\theta N$ para $N\in \N$, onde
+    \[
+        N\le \frac{3\pi\ceil{\log_2(k+1)}}{\theta} = 6\floor{\nicefrac{\pi}{\lambda}} \ceil{\log_2(k+1)}.
+    \]
+
+    Particionamos o intervalo de tempo $[0,\ \theta (N+1))$ em $N+1$ passos de tamanho $\theta$.
+    %
+    Para cada $i\in [N]$, denote por $d_{i+1}$ o passo de tempo do intervalo $[i \cdot \theta,\ (i+1) \cdot \theta)$.
+    %
+    O lema a seguir conecta as soluções ótimas para $I$ e o problema relaxado $\hat I$.
+
+    \begin{lemma}
+        \label{obs:msc2dptas}
+        Existe uma cobertura por varredura de tempo de varredura no máximo $\floor{\nicefrac{t^*}{\theta}}\theta$ para $\hat I$, que mapeia as arestas para pontos em $\{i\cdot \theta\ |\ i\in [N]\}$.
+    \end{lemma}
+
+    \begin{proof}
+        Seja $G$ uma solução ótima para o problema original $I$, e sejam $e=p_xp_y$ e $f=p_xp_w$ arestas adjacentes de $G$. Se $\alpha(e, f)>0$ então $|\cals^*(e)-\cals^*(f)|> \theta$, porque $\lambda > \theta$.
+        %
+        Assim, se $\cals^*$ mapeia $e$ e $f$ para pontos no tempo do mesmo passo $d_i$, então $\alpha(e, f)=0$, o que implica que os segmentos $\overline{p_xp_y}$ e $\overline{p_xp_w}$ compartilham um setor de $p_x$.
+        %
+        Portanto, $\cals'\colon E\to \R^+$, com $\cals'(g)=\floor{\nicefrac{\cals^*(g)}{\theta}}\theta$ para todo $g\in E$, constitui uma solução válida para o problema relaxado $\hat I$ com as propriedades exigidas.
+    \end{proof}
+
+    Usamos programação dinâmica baseada na decomposição em árvore \emph{nice} $\calt$ para computar uma cobertura ótima por varredura $\hat \cals$ para $\hat I$.
+    %
+    Para um nó $t\in V(T)$ na decomposição em árvore, sejam $P_t$ e $E_t$ os conjuntos de vértices e arestas, respectivamente, introduzidos na subárvore de $T$ enraizada em $t$, incluindo $t$ e todos os seus descendentes. Seja $G_t = (P_t, E_t)$ o subgrafo correspondente de $G$ e $F_t$ as arestas de $E_t$ que também estão presentes em $G[X_t]$.
+    %
+    Além disso, seja $\hat I_t = (P_t, G_t)$ a instância da versão relaxada do MSC2D obtida ao restringir $\hat I$ a $G_t$.
+    %
+    Dado um nó $t \in V(T)$ defina o seguinte valor para cada função~$s\colon F_t \to [N]$ e $h\colon X_t \to [4M-1]^{N+1}$:
+    %
+    \begin{align*}
+        W[t, s, h] = & \text{ tempo de varredura mínimo possível de uma cobertura por varredura }                                                                             \\
+                     & \mbox{$\hat\cals_t\colon E_t \to \R^+$} \text{ para } \hat I_t \text{ tal que } \hat\cals_t(e) = s(e)\cdot \theta \text{ para todo $e\in F_t$ e, para} \\
+                     & \text{cada $p_i\in X_t$, o vetor $h(p_i)$ corresponde ao histórico de direção de $p_i$}                                                                \\
+                     & \text{de acordo com } \hat\cals_t.
+    \end{align*}
+
+    Se nenhuma tal cobertura por varredura existir, definimos $W[t, s, h] = \infty$.
+    %
+    Note que $W[r, \emptyset, \emptyset]$ corresponde ao tempo de varredura ótimo de uma cobertura por varredura para o problema relaxado $\hat I$.
+    %
+    A seguir, mostramos como computar $W[t, \cdot, \cdot]$ em cada nó $t$ com base nos valores já calculados dos filhos de $t$.
+    %
+    Para cada tipo de nó, temos uma recorrência diferente:
+
+    \paragraph{Nó folha}
+
+    Se $t$ é um nó folha, temos apenas um valor $W[t, \emptyset, \emptyset] = 0$.
+
+    \paragraph{Nó de introdução de vértice}
+
+    Assuma que $t$ é um nó de introdução com filho $t'$ tal que \mbox{$X_t = X_{t'} \cup \{p_i\}$} para algum $p_i \notin X_{t'}$.
+    %
+    Então
+
+    $W[t, s, h] = \max\{W[t', s, \rest{h}{X_{t'}}], \cost(h(p_i))\}$.
+
+    \paragraph{Nó de introdução de aresta}
+
+    Assuma que $t$ é um nó de introdução de aresta, rotulado pela aresta $e=p_ip_j$. Seja $t'$ o filho de $t$ e $w$ o segmento $\overline{p_ip_j}$. Além disso, seja $x = h_{s(e)}(p_i)$ e $y = h_{s(e)}(p_j)$. Então
+    %
+    \begin{center}
+        \begin{equation*}
+            W[t, s, h] =
+            \begin{cases}
+                W[t', \rest{s}{F_{t'}}, h] & \text{se os setores $c_x$ de $p_i$ e $c_y$ de $p_j$ ambos contêm $w$,} \\
+                \infty                     & \text{caso contrário.}
+            \end{cases}
+        \end{equation*}
+    \end{center}
+
+    \paragraph{Nó de esquecimento}
+
+    Assuma que $t$ é um nó de esquecimento com filho $t'$. Logo, $X_t = X_{t'} \setminus \{p_i\}$ para algum $p_i \in X_{t'}$. Então
+    %
+    \begin{center}
+        \begin{equation*}
+            W[t, s, h] = \min_{\substack{
+                    s'\colon F_{t'} \to [N] \\
+                    h'\colon X_{t'} \to [4M-1]^{N+1} \\
+                    \text{tq: } \rest{s'}{F_{t}} = s \text{ e } \rest{h'}{X_{t}} = h
+                }} W[t', s', h'].
+        \end{equation*}
+    \end{center}
+
+    \paragraph{Nó de junção}
+
+    Finalmente, assuma que $t$ é um nó de junção com filhos $t_1$ e $t_2$, tal que $X_t = X_{t_1} = X_{t_2}$. Então
+
+    $W[t, s, h] = \max\{W[t_1, s, h], W[t_2, s, h]\}$. \bigskip
+
+    Isso conclui a descrição das fórmulas recursivas dos valores de $W[\cdot,\cdot,\cdot]$. Vamos analisar o tempo de execução de todo o algoritmo.
+    %
+    Lembre-se que, como a largura de $\calt$ é $k$, para todo nó $t$ temos $|X_t|\le k+1$ e $F_t\le \binom{k+1}{2}$.
+    %
+    Portanto, no nó $t$, computamos no máximo
+    %
+    \[
+        (N+1)^{|F_t|}\cdot (4M)^{(N+1)\cdot |X_t|} \le (N+1)^{\binom{k+1}{2}}\cdot (4M)^{(N+1)(k+1)} = N^{O(k^2)}\cdot M^{O(Nk)}
+    \]
+    %
+    valores de $W$.
+    %
+    Além disso, podemos computar cada um desses valores em tempo \mbox{$N\cdot M^{N}\cdot k^{O(1)}$} se usarmos uma estrutura de dados apropriada que lidem com consultas de adjacência em tempo $O(k)$~\cite{Cy15}.
+    %
+    Assim, o tempo necessário para processar cada nó é
+    %
+    \[
+        N^{O(k^2)}\cdot M^{O(Nk)}\cdot k^{O(1)} = (\log k)^{O(k^2)}\cdot \lambda^{-O(k^2+\frac{k\log k}{\lambda})}.
+    \]
+    %
+    Como o número de nós em $T$ é $O(kn)$, podemos computar o tempo de varredura ótimo para o problema relaxado $\hat I$ em tempo $O(\lambda^{-O(k^2+\frac{k\log k}{\lambda})}(\log k)^{O(k^2)}n)$.
+    %
+    Além disso, usando a técnica padrão de \emph{backlinks} (ponteiros de retorno), isto é, memorizando como um valor foi obtido para cada célula, podemos reconstruir uma cobertura por varredura ótima $\hat\cals$ para $\hat I$ dentro do mesmo tempo de execução assintótico.
+
+    Agora, dada uma cobertura ótima por varredura $\hat\cals$ para o problema relaxado $\hat I$, obtida por meio da programação dinâmica descrita acima, mostramos como derivar uma solução $2$-aproximada para o problema original $I$.
+    %
+    Primeiro, para \mbox{$i\in [N]$} seja $E^i$ o conjunto, possivelmente vazio, de arestas escalonadas por $\hat\cals$ para serem varridas no passo de tempo $d_{i+1}$, isto é, $\hat\cals(E^i)=\{i\cdot \theta\}$. Adicionalmente, seja $H^i:=(P^i, E^i)$ o subgrafo de $G$ induzido por $E^i$. Em particular, note que $E^0\ne\emptyset$ porque $\hat\cals$ é ótimo.
+
+    Seja $e=p_xp_y$ e $f=p_xp_w$ arestas adjacentes de $G$.
+    %
+    Note que porque $\lambda > \theta$, se $\alpha(e, f)>0$ então os segmentos $\overline{p_xp_y}$ e $\overline{p_xp_w}$ não podem compartilhar um setor de $p_x$ e consequentemente $|\hat\cals(e)-\hat\cals(f)|> \theta$.
+    %
+    Logo, $e$ e $f$ não podem pertencer ao mesmo grafo $H^i$.
+    %
+    Portanto, para cada par de arestas adjacentes $e$ e $f$ em $H^i$, temos $\alpha(e, f) = 0$.
+
+    A função $\hat\cals$ ainda não é uma solução válida para $I$. Mas, podemos criar uma cobertura por varredura válida $\cals$ para $I$ definindo $\cals(e)=2i\cdot \theta$ para todo $e\in E^i$ onde \mbox{$i\in [N]$}:
+
+    A condição $|\cals(e) - \cals(f)| \ge \alpha(e, f)$ é trivialmente satisfeita para cada par de arestas adjacentes $e$ e $f$ no mesmo conjunto $E^i$.
+    %
+    Agora, tome $e=p_xp_y\in H^i$ e $f=p_xp_w\in H^j$ onde $i\ne j$ como um par de arestas adjacentes.
+    %
+    Sejam $c_a$ e $c_b$ os setores de $p_x$ que contêm, respectivamente, os segmentos $\overline{p_xp_y}$ e $\overline{p_xp_w}$. Adicionalmente, seja $\phi$ o ângulo entre as bissetrizes dos setores $c_a$ e $c_b$.
+    %
+    Então $\alpha(e, f)\le \phi + \theta$.
+    %
+    Como $\hat\cals$ é uma solução válida para o problema relaxado $\hat I$, vale que $|\hat\cals(e) - \hat\cals(f)|=|i-j|\cdot \theta \ge \phi$.
+    %
+    Portanto, por definição, $|\cals(e) - \cals(f)| = 2|i-j| \cdot \theta \ge \phi + \theta \ge \alpha(e, f)$, garantindo que $S$ é uma cobertura por varredura válida para $I$.
+    %
+    Além disso, seu tempo de varredura é o dobro do de $\hat\cals$.
+
+    Por fim, pelo Lema \ref{obs:msc2dptas}, o tempo de varredura de $S$ é, no máximo, $2\floor{\nicefrac{t^*}{\theta}}\theta \le 2t^*$.
+\end{proof}
+\end{document}
